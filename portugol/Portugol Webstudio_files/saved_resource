@@ -1,0 +1,221 @@
+/* eslint strict:0,block-scoped-var:0 */
+/* global sentryEmbedCallback:false */
+(function (window, document, JSON) {
+  'use strict';
+  // TODO(dcramer): expose API for building a new error embed so things like
+  // JS applications can render this on demand
+  /**
+    window.sentryConfig = {
+      dsn: 'http://public@example.com/1',
+      eventId: '...',
+      attachOnLoad: true,
+      parent: document.body
+    };
+   */
+
+  /* eslint-disable spaced-comment */
+  var strings = /**/{"generic_error":"Um erro desconhecido ocorreu ao tentar enviar um relat\u00f3rio. Por favor tente novamente.","form_error":"Alguns campos est\u00e3o inv\u00e1lidos. Corrija os erros e tente novamente.","sent_message":"Seu parecer foi enviado. Obrigado!"};/**/ '';
+  var template = /**/"\n\n<style>\n/** Wrapper class name is provided by JS **/\n.sentry-error-embed-wrapper {\n  display: block;\n  outline: none;\n  position: fixed;\n  z-index: 999;\n  width: 100%;\n  height: 100%;\n  text-align: center;\n  top: 0;\n  left: 0;\n  background: rgba(0, 0, 0, 0.6);\n  overflow: auto;\n}\n.sentry-error-embed * {\n  margin: 0;\n  padding: 0;\n  background: inherit;\n  color: inherit;\n}\n.sentry-error-embed {\n  background: #fff;\n  margin: 0 auto;\n  max-height: 80%;\n  margin-top: 4%;\n  text-align: left;\n  border: 1px solid #fff;\n  padding: 40px;\n  max-width: 700px;\n  overflow: auto;\n  border-radius: 3px;\n  color: #546076;\n  box-shadow: 0 0 0 1px rgba(0,0,0, .3), 0 10px 40px rgba(0,0,0, .3);\n}\n.sentry-error-embed .clearfix {\n  *zoom: 1;\n}\n.sentry-error-embed .clearfix:before,\n.sentry-error-embed .clearfix:after {\n  display: table;\n  content: \"\";\n  line-height: 0;\n}\n.sentry-error-embed .clearfix:after {\n  clear: both;\n}\n.sentry-error-embed a,\n.sentry-error-embed a:visited {\n  color: #546076;\n  font-weight: 500;\n  text-decoration: none;\n}\n.sentry-error-embed * {\n  -webkit-font-smoothing: antialiased;\n  font-family: \"Helvetica Neue\", helvetica, sans-serif;\n}\n.sentry-error-embed p {\n  margin: 0 0 20px;\n}\n.sentry-error-embed form {\n  margin: 0;\n}\n.sentry-error-embed a:active,\n.sentry-error-embed a:focus, a:hover {\n  color: #1E263C;\n  text-decoration: underline;\n}\n.sentry-error-embed h2 {\n  font-size: 28px;\n  font-weight: 500;\n  margin: 0 0 5px;\n  color: #394359;\n}\n.sentry-error-embed header {\n  text-align: center;\n  margin-bottom: 20px;\n  padding-bottom: 8px;\n  border-bottom: 1px solid #E8EBF1;\n}\n.sentry-error-embed header p {\n  color: #94A0B3;\n  font-size: 16px;\n}\n.sentry-error-embed .form-field {\n  margin-bottom: 20px;\n  position: relative;\n  width: 100%;\n}\n.sentry-error-embed .form-field label {\n  font-size: 11px;\n  text-transform: uppercase;\n  font-weight: 500;\n  display: block;\n  margin-bottom: 5px;\n}\n.sentry-error-embed .form-field input,\n.sentry-error-embed .form-field textarea {\n  font-size: 15px;\n  padding: 8px 12px;\n  border: 1px solid #BAC2D3;\n  background: #FBFBFC;\n  border-radius: 0;\n  box-shadow: none;\n  width: 100%;\n  height: auto;\n  -webkit-box-sizing : border-box;\u200c\u200b\n  -moz-box-sizing : border-box;\n  box-sizing : border-box;\n  box-shadow: inset 0 1px 1px rgba(0,0,0, .06);\n  border-radius: 2px;\n}\n\n.sentry-error-embed .form-field input::-webkit-input-placeholder,\n.sentry-error-embed .form-field textarea::-webkit-input-placeholder {\n  color: #94A0B3;\n}\n\n.sentry-error-embed .form-field input:focus,\n.sentry-error-embed .form-field textarea:focus {\n  outline: none;\n  border-color: #94A0B3;\n}\n\n.sentry-error-embed .form-errors input,\n.sentry-error-embed .form-errors textarea {\n  border-color: #E35141;\n}\n.sentry-error-embed .form-field textarea {\n  height: 100px;\n}\n.sentry-error-embed .form-submit .btn {\n  border: none;\n  color: #fff;\n  background: #25A6F7;\n  padding: 10px 15px;\n  margin-right: 15px;\n  font-size: 16px;\n  font-weight: 500;\n  cursor: pointer;\n  float: left;\n  border: 1px solid #1D87CE;\n  box-shadow: 0 1px 1px rgba(0,0,0, .12);\n}\n.sentry-error-embed .form-submit .close {\n  padding: 10px 0;\n  font-size: 14px;\n  font-weight: 500;\n  cursor: pointer;\n  float: left;\n  border: none;\n}\n.sentry-error-embed .form-submit .btn:hover {\n  background: #1D87CE;\n}\n.sentry-error-embed .form-submit .powered-by {\n  padding: 10px 0;\n  margin: 0;\n  float: right;\n  font-size: 14px;\n}\n.sentry-error-embed .form-submit .powered-by a {\n  text-indent: -9999em;\n  display: inline-block;\n  color: #1E263C;\n  width: 81px;\n  height: 18px;\n\tbackground-image: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48IURPQ1RZUEUgc3ZnIFBVQkxJQyAiLS8vVzNDLy9EVEQgU1ZHIDEuMS8vRU4iICJodHRwOi8vd3d3LnczLm9yZy9HcmFwaGljcy9TVkcvMS4xL0RURC9zdmcxMS5kdGQiPjxzdmcgdmVyc2lvbj0iMS4xIiBpZD0iTGF5ZXJfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeD0iMHB4IiB5PSIwcHgiIHZpZXdCb3g9IjAgMCAyMzkuOCA1MyIgZW5hYmxlLWJhY2tncm91bmQ9Im5ldyAwIDAgMjM5LjggNTMiIHhtbDpzcGFjZT0icHJlc2VydmUiPjxnPjxnPjxwYXRoIGZpbGw9IiMxRDI2M0MiIGQ9Ik01NCw1M2gtNS42di00LjVINTRjMC41LDAsMC43LTAuMywwLjgtMC41YzAuMS0wLjIsMC4yLTAuNSwwLTFMMzAuNiw1Yy0wLjItMC40LTAuNi0wLjUtMC44LTAuNVMyOS4yLDQuNiwyOC45LDVsLTQuOSw4LjRDMzUuOSwyMi4xLDQzLDM1LjksNDMsNTAuN1Y1M0gyNy43di0yLjNjMC05LjMtNC4zLTE4LTExLjUtMjMuN2wtMy4xLDUuNGM1LjEsNC42LDguMSwxMS4zLDguMSwxOC4zVjUzSDUuNWMtMiwwLTMuOC0xLTQuOC0yLjdzLTEtMy44LDAtNS41bDMuNS02LjFsMy45LDIuM0w0LjcsNDdjLTAuMiwwLjQtMC4xLDAuOCwwLDFjMC4xLDAuMiwwLjMsMC41LDAuOCwwLjVoMTEuMUMxNiw0MywxMy4yLDM4LDguOCwzNC43bC0xLjYtMS4ybDcuNS0xMy4xbDIsMS4zYzkuMSw2LDE0LjcsMTUuOSwxNS40LDI2LjZoNi4yQzM3LjYsMzUuMywzMC44LDIzLjMsMTkuOCwxNkwxOCwxNC44bDctMTIuMUMyNiwxLDI3LjgsMCwyOS44LDBzMy44LDEsNC44LDIuN2wyNC4zLDQyYzEsMS43LDEsMy44LDAsNS41UzU2LDUzLDU0LDUzeiIvPjwvZz48cGF0aCBmaWxsPSIjMUQyNjNDIiBkPSJNODQuMiw0Mi4zYy00LjcsMC05LTEuNi0xMi42LTQuNmwyLjctMy4yYzMuMywyLjcsNi40LDMuOSwxMCwzLjljMy43LDAsNi4xLTEuOCw2LjEtNC41YzAtMi44LTEuOC00LjEtNy42LTUuNGMtNi42LTEuNi0xMC4yLTMuNS0xMC4yLTljMC01LjIsNC4zLTguOCwxMC4zLTguOGM0LjIsMCw3LjYsMS4xLDEwLjgsMy42bC0yLjQsMy40Yy0yLjktMi4xLTUuNy0zLjEtOC41LTMuMWMtMy40LDAtNS43LDEuNy01LjcsNC4zYzAsMi45LDEuNyw0LDcuOSw1LjVjNy4xLDEuNyw5LjgsNC4yLDkuOCw4LjlDOTUsMzguOCw5MC44LDQyLjMsODQuMiw0Mi4zeiIvPjxwb2x5Z29uIGZpbGw9IiMxRDI2M0MiIHBvaW50cz0iOTkuMyw0MS45IDk5LjMsMTEuMSAxMjEuOSwxMS4xIDEyMS45LDE1LjEgMTAzLjksMTUuMSAxMDMuOSwyNC40IDExOS44LDI0LjQgMTE5LjgsMjguMyAxMDMuOSwyOC4zIDEwMy45LDM3LjkgMTIyLjEsMzcuOSAxMjIuMSw0MS45ICIvPjxwb2x5Z29uIGZpbGw9IiMxRDI2M0MiIHBvaW50cz0iMTQ5LjIsNDEuOSAxMzEsMTguMyAxMzEsNDEuOSAxMjYuNSw0MS45IDEyNi41LDExLjEgMTMwLjksMTEuMSAxNDguNywzNC4xIDE0OC43LDExLjEgMTUzLjIsMTEuMSAxNTMuMiw0MS45ICIvPjxwb2x5Z29uIGZpbGw9IiMxRDI2M0MiIHBvaW50cz0iMTY2LjksNDEuOSAxNjYuOSwxNS4zIDE1Ni44LDE1LjMgMTU2LjgsMTEuMSAxODEuNiwxMS4xIDE4MS42LDE1LjMgMTcxLjUsMTUuMyAxNzEuNSw0MS45ICIvPjxwYXRoIGZpbGw9IiMxRDI2M0MiIGQ9Ik0yMDUuNCw0MS45bC03LjgtMTEuMWgtNy44djExLjFoLTQuNlYxMS4xaDEzLjdjNywwLDExLjMsMy43LDExLjMsOS42YzAsNC42LTIuNiw3LjktNy4yLDkuMmwtMC43LDAuMmw4LjQsMTEuOEgyMDUuNHogTTE4OS44LDI2LjloOC43YzQuMywwLDctMi4zLDctNS45YzAtMy43LTIuNi01LjgtNy4xLTUuOGgtOC42VjI2Ljl6Ii8+PHBvbHlnb24gZmlsbD0iIzFEMjYzQyIgcG9pbnRzPSIyMjMsNDEuOSAyMjMsMjkuNyAyMTAuOCwxMS4xIDIxNi4yLDExLjEgMjI1LjQsMjUuNiAyMzQuNiwxMS4xIDIzOS44LDExLjEgMjI3LjYsMjkuNiAyMjcuNiw0MS45ICIvPjwvZz48L3N2Zz4=);\n  background-repeat: no-repeat;\n  background-size: 81px 18px;\n  margin-left: 4px;\n  position: relative;\n  top: 2px;\n  opacity: .75;\n}\n.sentry-error-embed .message-success,\n.sentry-error-embed .message-error {\n  text-align: center;\n  font-size: 16px;\n  padding: 30px;\n  margin: -21px 0 20px;\n  border-radius: 3px;\n  box-shadow: 0 1px 1px rgba(0,0,0, .06);\n}\n.sentry-error-embed .message-success {\n  border: 1px solid #C9DEC2;\n  background: #FCFEFB;\n}\n.sentry-error-embed .message-error {\n  border: 1px solid #ECCFCC;\n  background: #FEFDFD;\n}\n.sentry-error-embed .error-wrapper p:last-child {\n  margin-bottom: 0;\n}\n@media screen and (max-height: 570px) {\n  .sentry-error-embed {\n    max-height: none;\n    margin-top: 0;\n  }\n}\n\n@media screen and (max-width: 660px) {\n  .sentry-error-embed {\n    padding: 10px;\n    max-width: none;\n  }\n  .sentry-error-embed h2 {\n    font-size: 22px;\n  }\n  .sentry-error-embed header p {\n    font-size: 14px;\n  }\n}\n@media screen and (max-width: 480px) {\n  .sentry-error-embed {\n    padding: 10px;\n    margin-top: 0;\n    position: absolute;\n    top: 0;\n    bottom: 0;\n    right: 0;\n    left: 0;\n    height: 100%;\n    max-height: none;\n  }\n  .sentry-error-embed h2 {\n    font-size: 20px;\n    line-height: 24px;\n  }\n  .sentry-error-embed header p {\n    font-size: 13px;\n  }\n  .sentry-error-embed header h2 > span,\n  .sentry-error-embed header p > span {\n    display: none;\n  }\n  .sentry-error-embed .form-submit {\n    text-align: center;\n  }\n  .sentry-error-embed .form-submit .btn,\n  .sentry-error-embed .form-submit .close,\n  .sentry-error-embed .form-submit .powered-by {\n    float: none;\n    display: block;\n    margin: 0 auto;\n  }\n  .sentry-error-embed .form-submit .powered-by {\n    margin-top: 10px;\n    font-size: 10px;\n  }\n}\n</style>\n\n<div class=\"sentry-error-embed clearfix\" role=\"dialog\" aria-modal=\"true\" aria-labelledby=\"sentry-error-embed-heading\">\n  <header>\n    <h2 id=\"sentry-error-embed-heading\">It looks like we&#x27;re having issues.</h2>\n    <p>Nossa equipe foi notificada. <span>Se voc\u00ea gostaria de ajudar, diga-nos o que aconteceu abaixo</span></p>\n  </header>\n  <form>\n    <div class=\"error-wrapper\"></div>\n    <div class=\"form-content\">\n      <div class=\"form-field clearfix\">\n        <label>Nome</label>\n        <input type=\"text\" name=\"name\" placeholder=\"Jane Bloggs\" maxlength=\"128\" required id=\"id_name\">\n      </div>\n      <div class=\"form-field clearfix\">\n        <label>Email</label>\n        <input type=\"email\" name=\"email\" placeholder=\"jane@example.com\" maxlength=\"75\" required id=\"id_email\">\n      </div>\n      <div class=\"form-field clearfix\">\n        <label>O que aconteceu?</label>\n        <textarea name=\"comments\" cols=\"40\" rows=\"10\" placeholder=\"Eu cliquei no &#x27;X&#x27; e ent\u00e3o cliquei &#x27;Confirmar&#x27;\" required id=\"id_comments\">\n</textarea>\n      </div>\n    </div>\n    <div class=\"form-submit clearfix\">\n      <button type=\"submit\" class=\"btn\">Submeta Relat\u00f3rios de Erros Fatais</button>\n      <button class=\"close\">Fechar</button>\n      \n      <p class=\"powered-by\">\n        Crash reports powered by <a href=\"https://sentry.io\">Sentry</a>\n      </p>\n      \n    </div>\n  </form>\n</div>\n";/**/ '';
+  var endpoint = /**/"https://us.sentry.io/api/embed/error-page/?dsn=https%3A%2F%2F620518162f784d2aa3e3ee7223d08594%40o1070945.ingest.sentry.io%2F6067438&lang=pt-br&eventId=d24889acd2a1423a8ffd4803348a7f60";/**/ '';
+  /* eslint-enable */
+
+  var setChild = function (target, child) {
+    target.innerHTML = '';
+    target.appendChild(child);
+  };
+
+  var buildMessage = function (className, message) {
+    var p = document.createElement('p');
+    p.className = className;
+    p.appendChild(document.createTextNode(message));
+    return p;
+  };
+
+  var focusable =
+    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+  var handleFocus;
+
+  var GENERIC_ERROR = buildMessage('message-error', strings.generic_error);
+  var FORM_ERROR = buildMessage('message-error', strings.form_error);
+  var FORM_SUCCESS = buildMessage('message-success', strings.sent_message);
+
+  // XMLHttpRequest.DONE does not exist in all browsers
+  var XHR_DONE = 4;
+
+  var serialize = function (form) {
+    var q = [];
+    for (var i = 0; i < form.elements.length; i++) {
+      q.push(form.elements[i].name + '=' + encodeURIComponent(form.elements[i].value));
+    }
+    return q.join('&');
+  };
+
+  var onReady = function (f) {
+    /in/.test(document.readyState)
+      ? setTimeout(function () {
+          onReady(f);
+        }, 9)
+      : f();
+  };
+
+  var SentryErrorEmbed = function () {
+    this.build();
+  };
+
+  SentryErrorEmbed.prototype.build = function () {
+    var self = this;
+    this.element = document.createElement('div');
+    this.element.className = 'sentry-error-embed-wrapper';
+    this.element.innerHTML = template;
+    self.element.onclick = function (e) {
+      if (e.target !== self.element) {
+        return;
+      }
+      self.close();
+    };
+
+    this._form = this.element.getElementsByTagName('form')[0];
+    this._form.onsumbit = function (e) {
+      e.preventDefault();
+      self.submit(self.serialize());
+    };
+
+    var buttons = this.element.getElementsByTagName('button');
+    this._submitBtn = buttons[0];
+    this._submitBtn.onclick = function (e) {
+      e.preventDefault();
+      self.submit(self.serialize());
+    };
+
+    var divTags = this._form.getElementsByTagName('div');
+    var i;
+    for (i = 0; i < divTags.length; i++) {
+      if (divTags[i].className === 'error-wrapper') {
+        this._errorWrapper = divTags[i];
+      }
+      if (divTags[i].className === 'form-content') {
+        this._formContent = divTags[i];
+      }
+    }
+
+    var cancelHandler = function (e) {
+      e.preventDefault();
+      self.close();
+    };
+    buttons[1].onclick = cancelHandler;
+
+    this._formMap = {};
+    var node;
+    for (i = 0; i < this._form.elements.length; i++) {
+      node = this._form.elements[i];
+      this._formMap[node.name] = node.parentNode;
+    }
+
+    if (document.querySelectorAll) {
+      var focusableElements = this.element.querySelectorAll(focusable);
+      var firstFocus = focusableElements[0];
+      var lastFocus = focusableElements[focusableElements.length - 1];
+      // Trap focus to improve UX and help screenreaders.
+      handleFocus = function (event) {
+        var isTab = event.key === 'Tab' || event.keyCode === 9;
+        if (!isTab) {
+          return;
+        }
+        if (event.shiftKey) {
+          if (document.activeElement === firstFocus) {
+            lastFocus.focus();
+            event.preventDefault();
+          }
+        } else {
+          if (document.activeElement === lastFocus) {
+            firstFocus.focus();
+            event.preventDefault();
+          }
+        }
+      };
+      document.addEventListener('keydown', handleFocus);
+
+      setTimeout(function () {
+        firstFocus.focus();
+      }, 1);
+    }
+  };
+
+  SentryErrorEmbed.prototype.serialize = function () {
+    return serialize(this._form);
+  };
+
+  SentryErrorEmbed.prototype.close = function () {
+    if (handleFocus) {
+      document.removeEventListener('keydown', handleFocus);
+    }
+    this.element.parentNode.removeChild(this.element);
+    if (window.parent) {
+      window.parent.postMessage('__sentry_reportdialog_closed__', '*');
+    }
+  };
+
+  SentryErrorEmbed.prototype.submit = function (body) {
+    var self = this;
+    if (this._submitInProgress) {
+      return;
+    }
+    this._submitInProgress = true;
+
+    var xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === XHR_DONE) {
+        if (xhr.status === 200) {
+          self.onSuccess();
+        } else if (xhr.status === 400) {
+          self.onFormError(JSON.parse(xhr.responseText));
+        } else {
+          setChild(self._errorWrapper, GENERIC_ERROR);
+        }
+        self._submitInProgress = false;
+      }
+    };
+    xhr.open('POST', endpoint, true);
+    xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+    xhr.send(body);
+  };
+
+  SentryErrorEmbed.prototype.onSuccess = function () {
+    this._errorWrapper.innerHTML = '';
+    setChild(this._formContent, FORM_SUCCESS);
+    this._submitBtn.parentNode.removeChild(this._submitBtn);
+    if (handleFocus) {
+      document.removeEventListener('keydown', handleFocus);
+    }
+  };
+
+  SentryErrorEmbed.prototype.onFormError = function (data) {
+    var node;
+    for (var key in this._formMap) {
+      node = this._formMap[key];
+      if (data.errors[key]) {
+        if (!/form-errors/.test(node.className)) {
+          node.className += ' form-errors';
+        }
+      } else if (/form-errors/.test(node.className)) {
+        node.className = node.className.replace(/form-errors/, '');
+      }
+    }
+    setChild(this._errorWrapper, FORM_ERROR);
+  };
+
+  SentryErrorEmbed.prototype.attach = function (parent) {
+    parent.appendChild(this.element);
+  };
+
+  var options = window.sentryConfig || {};
+  var embed = new SentryErrorEmbed();
+  if (options.attachOnLoad !== false) {
+    onReady(function () {
+      embed.attach(options.parent || document.body);
+      if (window.sentryEmbedCallback && typeof sentryEmbedCallback === 'function') {
+        sentryEmbedCallback(embed);
+      }
+    });
+  }
+})(window, document, JSON);
